@@ -38,13 +38,18 @@
           <div class="d-flex d-flex justify-content-between">
             <!-- left column -->
             <div class="l-header-left">
-              <div class="title"><a class="text-white" href="/">Site Checker</a></div>
+              <div class="form-inline">
+                <div class="title"><a class="text-white" href="/">Site Checker</a></div>
+                <div class="form-group">
+                  <input type="number" class="form-control mx-2" name="url" placeholder="Input Duration" v-model.trim="inputDuration" @input="setTimers">
+                </div>
+            </div>
             </div>
             <!-- left column -->
             <div class="l-header-right">
               <div class="form-inline">
                   <div class="form-group">
-                    <input type="text" class="form-control mx-2" name="url" placeholder="Input URL" @keyup.enter="add" v-model="inputUrl">
+                    <input type="text" class="form-control mx-2" name="url" placeholder="Input URL" @keyup.enter="add" v-model.trim="inputUrl">
                   </div>
               </div>
             </div>
@@ -53,7 +58,7 @@
       </header>
       <div class="container-fluid">
           <div class="row">
-              <window v-for="window in windows" :key="window.id" :window="window" :duration="duration" @remove="remove"></window>
+              <window v-for="window in windows" :key="window.id" :window="window" :duration="duration" @remove="remove" ref="window"></window>
           </div>
       </div>
     </div>
@@ -79,7 +84,7 @@
       Vue.component('window', {
         template: '<div class="window-box col-6">\
                       <div class="card mb-3 position-relative">\
-                          <button class="btn close-btn text-secondary" @click.prevent="$emit(\'remove\', url)"><i class="fas fa-times fa-3x"></i></button>\
+                          <button class="btn close-btn text-secondary" @click.prevent="$emit(\'remove\', window.id)"><i class="fas fa-times fa-3x"></i></button>\
                           <div class="card-body">\
                             <h5 class="card-title">\
                               {{ window.url }}\
@@ -96,7 +101,7 @@
             window: {
               id: null,
               url: '',
-              refleshAt: 1000 * 60,
+              refleshAt: 0,
             },
             duration: 1000 * 60,
             timers: []
@@ -111,6 +116,12 @@
             if (self.timers[window.url]) {
               return;
             }
+            // durationが0の時はリフレッシュさせない
+            if (self.duration == 0) {
+              window.refleshAt = 0
+              return;
+            }
+
             // 1秒毎にrefleshAtを減らして、0になったら更新
             self.timers[window.url] = setInterval(function(){
               window.refleshAt = window.refleshAt - 1000;
@@ -129,14 +140,14 @@
           remainTime: function() {
             return this.window.refleshAt / 1000;
           }
-        }
+        },
       })
 
       var app = new Vue({
         el: '#app',
         data: {
           windows: storage.fetch(),
-          duration: 1000 * 60,
+          inputDuration: 0,
           inputUrl: ''
         },
         methods: {
@@ -154,9 +165,34 @@
             this.windows.push(windowData);
             this.inputUrl = '';
           }, 
-          remove: function(url){
-            this.windows.splice(this.windows.indexOf(url), 1)
+          remove: function(id){
+            /*
+            *
+            *
+            * windowのRemoveがうまくいかないので調整中です
+            *
+            */
+            let spliceIndex = this.windows.indexOf(id)
+            spliceIndex = id
+            console.log(spliceIndex)
+            this.windows.splice(spliceIndex, 1)
           },
+          setTimers: function(){
+           /*
+            *
+            *
+            * durationを各windowに適用させれてないので調整中です
+            *
+            */
+            let windows = this.windows;
+            this.windows = [];
+            this.windows = windows
+          }
+        },
+        computed: {
+          duration: function() {
+            return this.inputDuration * 1000;
+          }
         },
         watch: {
           windows: {
